@@ -1,0 +1,245 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4023.18">
+  <POU Name="PRG_CNCAxesHandler" Id="{09e86179-f0c7-4e63-9c4c-17d3691b5ccb}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM PRG_CNCAxesHandler
+VAR
+	nHliAxisIdx					: INT;				
+	fbCNC_Axis					: ARRAY[0..HLI_SYS_AX_MAXIDX] OF FB_CNCAxis;	
+	
+	nFirstSpindle				: INT := -1;
+	fbHandleSpindleTechno		: HLI3_HandleSpindleTechnoGearChange;
+	M3,M4,M5,M19				: BOOL;
+	MDummy						: BOOL;
+	M40, M41, M42, M43, M44, M45: BOOL;
+	
+	fbAxesError 				: FB_AxesError;
+		
+	// FB_CNCAxis Sample
+	// fbAxis_X 					:  FB_CNCAxis; 
+	// stParameter					:  ST_CNC_AX_Parameter;
+	// stOptions					:  ST_CNC_AX_Options;
+	// stPLCopen					:  ST_CNC_AX_PLCopen;
+			
+	(*
+	fbHandleSpindleTechnoPlcSp	: HLI3_HandleSpindleTechno;
+	SM3,SM4,SM5,SM19			: bool; 
+	*)
+	bCalibrationCam: BOOL;
+	fbMoveSpindle: HLI3_MoveSpindle;
+END_VAR
+
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(****************************************************************************************)
+(* POU:		PRG_AxesHandler                     										*)
+(* Type:	PRG																			*)
+(* Author: 	TV,MiB                                             							*)
+(* Date: 	20.02.2019																	*)
+(* Rev.: 	1.6                                               							*)
+(* ------------------------------------------------------------------------------------ *)
+(* Desc:	Description																	*)
+(****************************************************************************************)
+
+fbAxesError(bReset := PLCReset);
+
+(****************************************************************************************)
+(*							Release of all reachable axes								*)
+(****************************************************************************************)
+PLCStatusAxisEnabled := TRUE;   
+FOR nHliAxisIdx := 0 TO UDINT_TO_INT(gNrAx-1) DO			
+	fbCNC_Axis[nHliAxisIdx](
+		nLogAxisNo :=  UINT_TO_INT(gpAx[nHliAxisIdx]^.head.log_ax_nr_r),
+		bEnable		:= PLCAxisEnable);
+		IF (NOT fbCNC_Axis[nHliAxisIdx].stStatus.bIsEnabled) THEN    // if one axis status is "not enabled" -> reset PLCStatusAxisEnabled
+			PLCStatusAxisEnabled := FALSE;
+		END_IF
+		IF HLI3_CheckAxisValid(nHliAxisIdx) THEN
+			IF nFirstSpindle = -1 AND gpAx[nHliAxisIdx]^.ipo_state.spindle_axis_r THEN  (* store HLIIndex of first spindle *)
+				nFirstSpindle := nHliAxisIdx;
+			END_IF
+		END_IF
+END_FOR
+
+
+	// FB_CNCAxis Sample 
+
+	// CNC Axis Options
+	
+	// stOptions.strPathCompTable;
+	// stOptions.bActivateCompTable;
+	// stOptions.bProbingSignal;
+	// stOptions.bReducedSpeed;
+	// stOptions.bReducedSpeedZone1;
+	// stOptions.bReducedSpeedZone2;
+	// stOptions.bResetCalibration;
+	
+	// CNC Parameters
+			
+	// stParameter.bWriteParameter;
+	// stParameter.nNumParameters  	:= 2;
+	// stParameter.strTempPath		:= 'C:\';
+	
+	// stParameter.ParamList[0].strName 	:= 'kenngr.swe_pos';
+	// stParameter.ParamList[0].strValue 	:= '30000000';
+
+	// stParameter.ParamList[1].strName 	:= 'kenngr.swe_neg';
+	// stParameter.ParamList[1].strValue 	:= '0';
+
+	// PLCOpen
+	// stPLCopen.nOverride;
+	// stPLCopen.bExecuteHoming;
+	// stPLCopen.bCamSignal;
+	// stPLCopen.bExecuteMoveAbsolute;
+	// stPLCopen.bExecuteReset;
+	// stPLCopen.fPosition;
+	// stPLCopen.fVelocity;
+	// stPLCopen.fAcceleration;
+	// stPLCopen.fJerk;
+	
+	(*
+	fbAxis_X(
+		nLogAxisNo:=1, 
+		bEnable:= PLCAxisEnable, 
+		bCalibrationCam:= bCalibrationCam, 
+		bSetRefOffset:= , 
+		fRefOffset:= , 
+		bFeedhold:= ,
+		stOptions:= stOptions, 
+		stParameter:= stParameter, 
+		stPLCopen:= stPLCopen, 
+		stStatus=> );
+*)		
+ 
+
+(* if there exits spindles use the first one for spindleoverride *)
+IF nFirstSpindle <> -1 THEN
+	HLI3_SetAxisOverride(nHliAxisIdx:= nFirstSpindle , nOverride:= PLCSpindleOverride *10);
+
+	fbHandleSpindleTechno(
+		nHliAxisIdx:=nFirstSpindle , 		
+		bIsChannelSpecific:= FALSE, 
+		bHandleGearChange := FALSE,		
+		nRevolution=> , 
+		nPosition=> , 
+		bError=> , 
+		nErrorId=> , 
+		M03:= M3, 
+		M04:= M4, 
+		M05:= M5, 
+		M19:= M19,
+		M40 := M40,
+		M41 := M41,
+		M42 := M42,
+		M43 := M43,
+		M44 := M44,
+		M45 := M45,
+		); 
+	(* acknowledge all spindle M funnctions immediately *)
+	M3 := FALSE;  
+	M4 := FALSE;
+	M5 := FALSE;
+	M19 := FALSE;
+	
+	
+	
+	(* Example for starting and stopping a spindle in manual mode in first channel *)
+	IF (CNCSystem.Channel[0].ActMode = HLI_IMCM_MANUAL_MODE) THEN 	
+		fbMoveSpindle(
+			nHliAxisIdx:=nFirstSpindle , 
+			nSpeed:= nSpindleRpm ,   (* defined in Global_HMI *)
+			bStart:=bSpindleStart, 	 (* defined in Global_HMI *)
+			bStop:= bSpindleStop , 	 (* defined in Global_HMI *)
+			bBusy=> , 
+			bError=> , 
+			nErrID=> , 
+			sErrText=> );
+	END_IF
+	IF (bSpindleStart AND NOT fbMoveSpindle.bBusy) THEN 
+		bSpindleStart := FALSE;
+	END_IF
+	IF (bSpindleStop AND NOT fbMoveSpindle.bBusy) THEN 
+		bSpindleStop := FALSE;
+	END_IF	
+	
+	
+END_IF
+
+
+
+(* Howto use plc controlled spindle : *)
+(*
+fbHandleSpindleTechnoPlcSp(
+	nHliAxisIdx:= 0 , 
+	nHliChannelIdx:= 0 , 
+	bIsChannelSpecific:= TRUE, 
+	nLogAxisNoChannelSpecific:= 95 , 
+	bHandleGearChange:= FALSE , 
+	bChannelReset:= FALSE, 
+	nRevolution=> , 
+	nPosition=> , 
+	bError=> , 
+	nErrorId=> , 
+	M03:= SM3, 
+	M04:= SM4, 
+	M05:= SM5, 
+	M19:= SM19);
+*)
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="PRG_CNCAxesHandler">
+      <LineId Id="3" Count="8" />
+      <LineId Id="308" Count="1" />
+      <LineId Id="12" Count="3" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="106" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="337" Count="1" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="20" Count="5" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="174" Count="0" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="176" Count="0" />
+      <LineId Id="179" Count="5" />
+      <LineId Id="177" Count="0" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="113" Count="7" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="206" Count="0" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="211" Count="0" />
+      <LineId Id="217" Count="5" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="223" Count="2" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="255" Count="0" />
+      <LineId Id="229" Count="0" />
+      <LineId Id="28" Count="7" />
+      <LineId Id="366" Count="0" />
+      <LineId Id="36" Count="19" />
+      <LineId Id="394" Count="1" />
+      <LineId Id="399" Count="17" />
+      <LineId Id="396" Count="2" />
+      <LineId Id="56" Count="22" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

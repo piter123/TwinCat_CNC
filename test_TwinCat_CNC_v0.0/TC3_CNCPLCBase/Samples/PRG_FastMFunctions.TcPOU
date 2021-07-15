@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.7">
+  <POU Name="PRG_FastMFunctions" Id="{ffeb27fe-75b6-4c5a-99e1-641a5772f3a5}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM PRG_FastMFunctions
+VAR
+	anMFunctionNo						: ARRAY[0..MAX_FAST_M_FUNC_ITEM_IDX] OF UINT;	
+	fbFastMFunctionProvider				: HLI3_FastMFunctionProvider;
+	fbFastMFunctionHandler				: HLI3_FastMFunctionHandler;	
+	abyOutput					AT %Q*	: ARRAY[0..MAX_FAST_M_FUNC_OUTPUT_IDX] OF BYTE;  	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(****************************************************************************************)
+(* POU:		PRG_FastMFunctions                    										*)
+(* Type:	PRG																			*)
+(* Author: 	RCH		                                             						*)
+(* Date: 	14/10/29																	*)
+(* Rev.: 	1.0                                               							*)
+(* ------------------------------------------------------------------------------------ *)
+(* Desc.:	PLC program to demonstrate usage of MOS_TS M functions using the FB´s		*)
+(*			HLI3_FastMFunctionProvider and HLI3_FastMFunctionHandler.					*)
+(*			In order to achieve a determenistic output behavior this program has to be 	*)
+(*			called by a task running synchronously to the CNC GEO task. Therefore that	*)
+(*			task´s priority  has to be adjusted in a way that it gets called by the 	*)
+(* 			realtime system	right after the CNC GEO task.								*)
+(*																						*)
+(*			THIS IMPLEMENTATION REQUIRES A 1MS CNC GEO AND 1MS FAST PLC TASK CYCLE!!!	*)
+(* ------------------------------------------------------------------------------------ *)
+(* Rev.:	<Enter revision number here>												*)
+(* Date:	<Enter revision data here>				                                   	*)
+(* Author:	<Enter author´s shortcut here>											 	*)
+(* Desc.:	<Enter description here>													*)
+(****************************************************************************************)
+
+
+(****************************************************************************************)
+(*	  						Configure M function no´s to provide						*)
+(****************************************************************************************)
+(* Add up to MAX_FAST_M_FUNC_ITEM_IDX m function numbers that should be handled by 		*)
+(* fbFastMFunctionProvider.																*)
+anMFunctionNo[0]	:= 25;
+anMFunctionNo[1]	:= 26;
+
+fbFastMFunctionProvider
+	(nHliChanIdx	:= 0, 
+	 anMFunctionNo	:= anMFunctionNo
+	);
+	
+(****************************************************************************************)
+(*	  						 	Handle Laser ON/OFF (M25/M26)							*)
+(****************************************************************************************)
+(* M function numbers for switching ON and OFF have to be contained in the 				*)
+(* 'anMFunctionNo' array of the HLI3_FastMFunctionProvider instance which provides the	*)
+(* 'stData' structure to this FB.														*)
+(* The delay times nDelayOn and nDelayOff can be used to adopt to external hardware		*)
+(* delays!																				*)
+fbFastMFunctionHandler
+	(bForceOff		:= FALSE, 
+	 bReset			:= FALSE, 
+	 nFunctionNoOn	:= 25, 
+	 nDelayOn		:= 0,			
+	 nFunctionNoOff	:= 26, 
+	 nDelayOff		:= 0,
+	 stData			:= fbFastMFunctionProvider.stData,
+	 abyOutput		=> abyOutput
+	);]]></ST>
+    </Implementation>
+    <LineIds Name="PRG_FastMFunctions">
+      <LineId Id="3" Count="52" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

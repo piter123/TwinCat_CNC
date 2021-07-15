@@ -1,0 +1,194 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <POU Name="FB_SimpleEventLog" Id="{824df5dd-5df2-4652-aeac-edaeb94d45d5}" SpecialFunc="None">
+    <Declaration><![CDATA[///****************************************************************************************
+///Name:				FB_SimpleEventLog
+///Date:				13.10.2004
+///Author:			Dirk Nordberg (BECKHOFF INDUSTRIE ELEKTRONIK)
+///
+///Description: Function block to control the EventLogger
+///	Messages can be activated or deactivated through an array of bool.
+///	The subscription of the array is equivalent to EventID from EventLogger.
+///	Function block will be initialized with Init flag, then the busy flag is set true. 
+///
+///	Revision:	1.4
+///	History:		13.10.2004	Ng	start coding
+///					17.04.2005	MK	runtime optimized
+///					07.07.2005	MK	short puls BF
+///				    29.11.2010 	MiB  quittierungspflichtige Merker funktionieren nun wieder
+///                 21.06.2013  TV   change : data type for pointer address from uint to pointer of int 
+///****************************************************************************************
+FUNCTION_BLOCK FB_SimpleEventLog
+VAR_INPUT
+	/// Rising flag starts the initialization 
+	Init: BOOL;
+	/// Number of the source Id 
+	SourceId: UINT;
+	/// Alarm error class 
+	Class: UINT;
+	/// Activate or deaktivate confirmation 
+	QuitRequired: BOOL;
+	/// Adress of the array for the messages 
+	adrAlarmArray: POINTER TO BOOL;
+	/// ...with constant boundaries ARRAY_LBOUND to ARRAY_UBOUND for array size 
+	adrQuitArray: POINTER TO BOOL;
+END_VAR
+VAR_OUTPUT
+	Busy: BOOL;
+	Err: BOOL;
+	ErrId: UDINT;
+END_VAR
+VAR CONSTANT
+	ARRAY_LBOUND: UDINT := FIRST_MESSAGE;
+	ARRAY_UBOUND: UDINT := LAST_MESSAGE;
+	TCEVENTDATAFORMATSTRING: STRING := ' ';
+	STATE_INIT: INT := 0;
+	STATE_IDLE: INT := 1;
+	STATE_RESET_EVENT: INT := 2;
+	STATE_QUIT_EVENT: INT := 3;
+	STATE_RESET_END: INT := 4;
+	STATE_WAIT: INT := 5;
+END_VAR
+VAR
+	state: INT;
+	///{flag nowatch on }
+	bReady: BOOL := TRUE;
+	nMsgHasChanged: DINT;
+	bEvtState: ARRAY[ARRAY_LBOUND..ARRAY_UBOUND] OF BOOL;
+	event: ARRAY[ARRAY_LBOUND..ARRAY_UBOUND] OF ADSLOGEVENT;
+	idx: UDINT;
+	CfgEvent: TcEvent;
+	bWait: BOOL;
+	ptAlarm: POINTER TO BOOL;
+	ptQuit: POINTER TO BOOL;
+	RT_Init: R_TRIG;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[nMsgHasChanged := MEMCMP(ADR(bEvtState), adrAlarmArray, SIZEOF(bEvtState));
+
+RT_Init(CLK:=Init);
+
+CASE State OF
+	STATE_INIT:		(* Set the parameter for TcEvent *)
+		Err := FALSE;
+		ErrId :=0;
+		Busy := FALSE;
+		CfgEvent.Prio := 0;
+		CfgEvent.DataFormatStrAddress := ADR(TCEVENTDATAFORMATSTRING);
+		// CfgEvent.Flags := TCEVENTFLAG_LOG OR TCEVENTFLAG_SRCID OR TCEVENTFLAG_PRIOCLASS OR TCEVENTFLAG_FMTSELF OR 16#1000;
+		// MiB 2015.10.07 Flags changed -> now the class is defined here and not in Event config file.
+		CfgEvent.Flags := TCEVENTFLAG_LOG OR TCEVENTFLAG_SRCID;
+		CfgEvent.StreamType := TCEVENTSTREAM_SIMPLE;
+		CfgEvent.ProgId := 'TcEventFormatter.TcXmlFormatter';
+		CfgEvent.SourceId := SourceId;
+		CfgEvent.Class := Class ;
+		CfgEvent.bQuitRequired := QuitRequired;
+		FOR idx := ARRAY_LBOUND TO ARRAY_UBOUND BY 1 DO
+			CfgEvent.Id := idx;
+			event[idx](NETID:='', PORT:=110, Event:=FALSE , EventQuit:=FALSE,
+				 EventConfigData:=CfgEvent, FbCleanup:=FALSE, TMOUT:=t#1s);
+		END_FOR;
+		State := STATE_IDLE;
+
+	STATE_IDLE:
+		(* nothing to do *)
+		IF nMsgHasChanged = 0
+			AND  NOT QuitRequired
+			AND bReady = TRUE
+			AND NOT RT_Init.Q THEN
+			RETURN;
+		END_IF
+
+		IF adrAlarmArray <> 0 THEN
+			ptAlarm := adrAlarmArray;
+			IF CfgEvent.bQuitRequired AND adrQuitArray <> 0 THEN
+				ptQuit := adrQuitArray;
+				FOR idx := ARRAY_LBOUND TO ARRAY_UBOUND BY 1 DO
+					event[idx](Event:=ptAlarm^, EventQuit:=ptQuit^);
+					ptAlarm := ptAlarm + 1;
+					ptQuit := ptQuit + 1;
+				END_FOR;
+				bReady := TRUE;
+			ELSE
+				bReady := TRUE;
+				FOR idx := ARRAY_LBOUND TO ARRAY_UBOUND BY 1 DO
+					event[idx](Event:=ptAlarm^);
+					IF (NOT (ptAlarm^ = TRUE
+							AND event[idx].Event = TRUE		(* event is set/on *)
+							AND event[idx].Quit = FALSE
+							AND event[idx].EventState = TCEVENTSTATE_SIGNALED)
+						AND NOT (ptAlarm^ = FALSE
+							AND event[idx].Event = FALSE		(* event is reset/off *)
+							AND event[idx].Quit = TRUE
+							AND event[idx].EventState = TCEVENTSTATE_INVALID)) THEN
+						bReady := FALSE;
+					END_IF
+					ptAlarm := ptAlarm + 1;
+				END_FOR;
+
+				(* copy the status *)
+				IF bReady THEN
+					MEMCPY(ADR(bEvtState), adrAlarmArray, SIZEOF(bEvtState));
+				END_IF
+
+			END_IF
+		END_IF
+
+		IF RT_Init.Q THEN
+			Busy := TRUE;
+			State := STATE_RESET_EVENT;
+		END_IF
+
+	STATE_RESET_EVENT:(*---------------------------------- clear messages ----------------------------------------*)
+		FOR idx := ARRAY_LBOUND TO ARRAY_UBOUND BY 1 DO
+			IF event[idx].EventState = TCEVENTSTATE_SIGNALED THEN
+				event[idx](Event:=FALSE, EventQuit:= FALSE, FbCleanup:= FALSE, TMOUT:= t#1s);
+				IF event[idx].Err THEN
+					Err := TRUE;
+					ErrId := event[idx].ErrId;
+					IF event[idx].ErrId = 1282 THEN	(* Message Router: mailbox full *)
+						event[idx](Event:=FALSE, EventQuit:= FALSE, FbCleanup:= FALSE);
+						RETURN;
+					END_IF
+				END_IF
+			END_IF;
+		END_FOR;
+		State := STATE_QUIT_EVENT;
+
+	STATE_QUIT_EVENT:(*---------------------------------- quit messages ----------------------------------------*)
+		FOR idx := ARRAY_LBOUND TO ARRAY_UBOUND BY 1 DO
+			IF event[idx].EventState = TCEVENTSTATE_SIGNALED THEN
+				event[idx](Event:=FALSE, EventQuit:= TRUE, FbCleanup:= FALSE, TMOUT:= t#1s);
+				IF event[idx].Err THEN
+					Err := TRUE;
+					ErrId := event[idx].ErrId;
+					IF event[idx].ErrId = 1282 THEN	(* Message Router: mailbox full *)
+						event[idx](Event:=FALSE, EventQuit:= FALSE, FbCleanup:= FALSE);
+						RETURN;
+					END_IF
+				END_IF
+			END_IF;
+		END_FOR;
+		State := STATE_RESET_END;
+
+	STATE_RESET_END:
+		bWait := FALSE;
+		FOR idx := ARRAY_LBOUND TO ARRAY_UBOUND BY 1 DO
+			event[idx](Event:=FALSE, EventQuit:= FALSE, FbCleanup:= FALSE);
+			IF event[idx].EventState = TCEVENTSTATE_SIGNALED THEN
+				bWait := TRUE;
+			END_IF
+		END_FOR;
+		IF NOT bWait THEN
+			State := STATE_INIT;
+		END_IF
+
+END_CASE]]></ST>
+    </Implementation>
+    <LineIds Name="FB_SimpleEventLog">
+      <LineId Id="3" Count="118" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

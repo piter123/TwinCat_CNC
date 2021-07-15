@@ -1,0 +1,141 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.10">
+  <POU Name="PRG_CNCChannelHandler" Id="{1fecdf9c-539b-4107-8f04-7fd2431b36ce}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM PRG_CNCChannelHandler
+VAR	
+	nChan					: INT;
+	nOldSelectedChannel		: UDINT;
+	CNCChannel				: ARRAY[0..MAX_USED_CHANNEL_IDX] OF HLI3_CNCChannel;	
+	BlockSearch_Channel		: ARRAY[0..MAX_USED_CHANNEL_IDX] OF HLI3_BlockSearch;
+	ErrorHandler_Channel	: ARRAY[0..MAX_USED_CHANNEL_IDX] OF FB_ChannelError;
+	nChanNo: UDINT;	
+	i: INT;	
+	stOptions				: ST_CNC_CH_Options;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(****************************************************************************************)
+(* POU:		PRG_ChannelHandler                     										*)
+(* Type:	PRG																			*)
+(* Author: 	HR / TV / MiB                                          						*)
+(* Date: 	23.01.11																	*)
+(* Last:	29.03.18																	*)
+(* Rev.: 	1.6                                              							*)
+(* ------------------------------------------------------------------------------------ *)
+(* Desc:	Description																	*)
+(****************************************************************************************)
+
+(****************************************************************************************)
+(*	  Map CNC function selection from HMI to selected channel (and state vice versa)  	*)
+(****************************************************************************************)
+IF (nOldSelectedChannel <>INT_TO_UDINT(PLCSelectedChannel)) THEN
+	PLCChannelSignals.SingleBlock 		:= PLCMachineMode[PLCSelectedChannel].ChannelSignals.SingleBlock;
+	PLCChannelSignals.PrgBlockIgnore	:= PLCMachineMode[PLCSelectedChannel].ChannelSignals.PrgBlockIgnore;
+	PLCChannelSignals.M01Stop 			:= PLCMachineMode[PLCSelectedChannel].ChannelSignals.M01Stop;
+	PLCChannelSignals.Backward 			:= PLCMachineMode[PLCSelectedChannel].ChannelSignals.Backward;
+	PLCChannelSignals.FeedHold 			:= PLCMachineMode[PLCSelectedChannel].ChannelSignals.FeedHold;
+	nOldSelectedChannel 				:= INT_TO_UDINT(PLCSelectedChannel);
+END_IF
+
+PLCMachineMode[PLCSelectedChannel].ChannelSignals.SingleBlock 		:= PLCChannelSignals.SingleBlock;
+PLCMachineMode[PLCSelectedChannel].ChannelSignals.PrgBlockIgnore 	:= PLCChannelSignals.PrgBlockIgnore;
+PLCMachineMode[PLCSelectedChannel].ChannelSignals.M01Stop 			:= PLCChannelSignals.M01Stop;
+PLCMachineMode[PLCSelectedChannel].ChannelSignals.Backward 		:= PLCChannelSignals.Backward;
+PLCMachineMode[PLCSelectedChannel].ChannelSignals.FeedHold 		:= PLCChannelSignals.FeedHold;
+
+
+stOptions.bReferenceModeStartRequired := FALSE;
+
+FOR i := 0 TO MAX_USED_CHANNEL_IDX DO
+		
+	nChan := i;	
+	IF (HLI3_CheckChannelValid(nChan)) THEN		
+		
+		(* Error handler for channel 1 *)
+		ErrorHandler_Channel[nChan](nChanIdx			:= nCHan);				
+				
+		(* Channel interface *)
+		CNCChannel[nChan]
+			(nChanIdx			:= nChan,							
+			 // Operation Mode with VAR_IN_OUT Variables 
+			 bModeStandby		:= PLCMachineMode[nChan].Standby,
+			 bModeAutomatic		:= PLCMachineMode[nChan].Automatic,
+			 bModeManual		:= PLCMachineMode[nChan].Manual,
+			 bModeMDI			:= PLCMachineMode[nChan].MDI,	 
+			 bModeReference		:= PLCMachineMode[nChan].Homing,
+			 // Operation State with VAR_IN_OUT Variables
+			 bStateSelect		:= PLCMachineMode[nChan].Select,
+			 bStateReady		:= PLCMachineMode[nChan].Ready,
+			 bStateStart		:= PLCMachineMode[nChan].Start,
+			 bStateStop			:= PLCMachineMode[nChan].Stop,
+			 bStateReset		:= PLCMachineMode[nChan].Reset,
+			 // Operation Mode with VAR_IN Varaibles, the command is executed with a rising edge 
+			 bCmdAutomatic 		:= FALSE,
+			 bCmdManual 		:= FALSE,
+    		 bCmdReference 		:= FALSE,
+    		 bCmdMDI 			:= FALSE,		
+			 // Operation State with VAR_IN Varaibles, the command is executed with a rising edge
+			 bCmdStart 			:= FALSE,
+			 bCmdStop  			:= FALSE,
+	         bCmdReset 			:= FALSE,					 			 
+			 // EmergencyStop 
+			 bEmergencyStop 	:= FALSE,		(* If TRUE the interpolation will be aborted, Signal is no TwinSAFE function !*)
+			 // Override 
+			 nFeedOverride		:= PLCFeedOverride * 10,
+			 nRapidFeedOverride := PLCFeedOverride * 10, 
+			 // Special Functions 
+			 sProgramName		:= PLCMachineMode[nChan].ProgramName,			 
+			 sMDIString			:= PLCMachineMode[nChan].MDIString,
+			 bBackwardMotion	:= PLCMachineMode[nChan].ChannelSignals.Backward,
+			 bPrgBlockIgnore	:= PLCMachineMode[nChan].ChannelSignals.PrgBlockIgnore,
+			 bFeedHold			:= PLCMachineMode[nChan].ChannelSignals.FeedHold,
+			 bSingleBlock		:= PLCMachineMode[nChan].ChannelSignals.SingleBlock,
+			 bDoSingleBlock		:= PLCMachineMode[nChan].ChannelSignals.DoSingleBlock,
+			 bM01Stop			:= PLCMachineMode[nChan].ChannelSignals.M01Stop,
+			 nSyntaxCheck		:= PLCMachineMode[nChan].SyntaxCheck.nType,
+			 bM30Acknowledgement:= TRUE,
+			 // Manual Mode 			 						 
+			 stManualModeParameter  	 	 := stManualModeParameter[nChan],
+			 stManualModeControlElements	 := stManualModeControlElements[nChan],
+			 stManualModeControlElementState := stManualModeControlElementState,
+			 // Options
+			 stOptions			:= 	stOptions			 			 
+			);
+		
+		(* Handle block search *)
+		BlockSearch_Channel[nChan]
+			(nChanIdx			:= nChan,
+			 bStartRead      	:= PLCMachineMode[nChan].BlockSearch.bStartRead,   (* Edge signal *)
+			 bStartWrite     	:= PLCMachineMode[nChan].BlockSearch.bStartWrite,  (* Edge signal *)
+			 BlockSearch		:= PLCMachineMode[nChan].BlockSearch
+			);
+		
+		CNCSystem.Channel[nChan].ActDistance 	:= DINT_TO_LREAL(BlockSearch_Channel[nChan].coveredDistance_AfterReset) / 10.0;
+		CNCSystem.Channel[nChan].ActBlockCount 	:= BlockSearch_Channel[nChan].actualBlockCount_AfterReset;
+						
+	END_IF
+END_FOR
+]]></ST>
+    </Implementation>
+    <LineIds Name="PRG_CNCChannelHandler">
+      <LineId Id="3" Count="28" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="32" Count="8" />
+      <LineId Id="47" Count="15" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="125" Count="2" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="129" Count="1" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="107" Count="1" />
+      <LineId Id="103" Count="2" />
+      <LineId Id="63" Count="9" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="73" Count="2" />
+      <LineId Id="140" Count="1" />
+      <LineId Id="77" Count="14" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

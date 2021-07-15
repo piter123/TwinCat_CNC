@@ -1,0 +1,116 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.17">
+  <POU Name="PRG_ManualFnc" Id="{5971ccc3-5532-4fb7-82e7-175bb16004d6}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM PRG_ManualFnc
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+
+	ManualFnc[0].headerText := 'HeaderText 1';
+	ManualFnc[0].addText := 'addText';
+	ManualFnc[0].infoText1 := 'infoText1';
+	ManualFnc[0].infoText2 := 'infoText2';
+	ManualFnc[0].infoText3 := 'infoText3';
+	ManualFnc[0].infoText4 := 'infoText4';
+	ManualFnc[0].error := FALSE;
+	
+	ManualFnc[0].left.key.text := 'left.key.text';
+	ManualFnc[0].left.status.text := 'left.status.text';
+	ManualFnc[0].left.key.disable := TRUE;
+	ManualFnc[0].left.status.colorChange := TRUE;
+	
+	ManualFnc[0].right.key.text := 'right.key.text';
+	ManualFnc[0].right.status.text := 'right.status.text';
+	ManualFnc[0].right.key.colorChange := TRUE;
+
+	
+	
+
+	ManualFnc[1].headerText := 'HeaderText 2';
+	ManualFnc[1].addText := '';
+	ManualFnc[1].infoText1 := 'infoText1';
+	ManualFnc[1].infoText2 := 'infoText2';
+	ManualFnc[1].infoText3 := 'infoText3';
+	ManualFnc[1].infoText4 := 'infoText4';
+	ManualFnc[1].error := FALSE;
+	ManualFnc[1].select := FALSE;
+		
+	ManualFnc[1].left.key.text := 'left.key.text';
+	ManualFnc[1].left.status.text := 'left.status.text';
+	ManualFnc[1].left.key.disable := FALSE;
+	ManualFnc[1].left.status.colorChange := FALSE;
+	
+	ManualFnc[1].right.key.text := 'right.key.text';
+	ManualFnc[1].right.status.text := 'right.status.text';
+	ManualFnc[1].right.key.colorChange := FALSE;
+	
+
+
+
+	
+	ManualFnc[2].headerText := 'HeaderText 3';
+	ManualFnc[2].addText := 'addText';
+	ManualFnc[2].infoText1 := 'infoText1';
+	ManualFnc[2].infoText2 := 'infoText2';
+	ManualFnc[2].infoText3 := 'infoText3';
+	ManualFnc[2].infoText4 := 'infoText4';
+	ManualFnc[2].error := TRUE;
+	
+	ManualFnc[2].left.key.text := 'left.key.text';
+	ManualFnc[2].left.status.text := 'left.status.text';
+	ManualFnc[2].left.key.disable := TRUE;
+	ManualFnc[2].left.status.colorChange := TRUE;
+	
+	ManualFnc[2].right.key.text := 'right.key.text';
+	ManualFnc[2].right.status.text := 'right.status.text';
+	ManualFnc[2].right.key.colorChange := TRUE;	
+	
+
+
+	
+	
+	ManualFnc[3].headerText := 'HeaderText 4';
+	ManualFnc[3].addText := '';
+	ManualFnc[3].infoText1 := 'infoText1';
+	ManualFnc[3].infoText2 := 'infoText2';
+	ManualFnc[3].infoText3 := 'infoText3';
+	ManualFnc[3].infoText4 := 'infoText4';
+	ManualFnc[3].error := FALSE;
+	ManualFnc[3].select := FALSE;	
+	
+	ManualFnc[3].left.key.text := 'left.key.text';
+	ManualFnc[3].left.status.text := 'left.status.text';
+	ManualFnc[3].left.key.disable := FALSE;
+	ManualFnc[3].left.status.colorChange := FALSE;
+	
+	ManualFnc[3].right.key.text := 'right.key.text';
+	ManualFnc[3].right.status.text := 'right.status.text';
+	ManualFnc[3].right.key.colorChange := FALSE;	
+	
+	
+	]]></ST>
+    </Implementation>
+    <LineIds Name="PRG_ManualFnc">
+      <LineId Id="6" Count="17" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="25" Count="9" />
+      <LineId Id="36" Count="6" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="87" Count="2" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="50" Count="14" />
+      <LineId Id="45" Count="1" />
+      <LineId Id="90" Count="1" />
+      <LineId Id="47" Count="1" />
+      <LineId Id="68" Count="7" />
+      <LineId Id="77" Count="7" />
+      <LineId Id="65" Count="2" />
+      <LineId Id="49" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

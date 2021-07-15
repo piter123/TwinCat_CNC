@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.4">
+  <DUT Name="ST_MachineMode" Id="{bedbe333-fa74-44a4-9ca4-ab8d537f835e}">
+    <Declaration><![CDATA[TYPE ST_MachineMode :
+STRUCT
+	/// Operation Mode 
+	Standby: BOOL;
+	Manual: BOOL;
+	MDI: BOOL;
+	Automatic: BOOL;
+	///REFERENCE		: BOOL;  TC3HR
+	Homing: BOOL;
+	/// Operation State
+	Select : BOOL; 
+	Ready  : BOOL;
+	Start: BOOL;
+	Stop: BOOL;
+	Reset: BOOL;
+	Error: BOOL;
+	/// Special functions 
+	ChannelSignals: ST_ChannelSignals;
+	BlockSearch: ST_BlockSearch;
+	SyntaxCheck: ST_SyntaxCheck;
+	ManualMode: ST_ManualMode;
+	/// Strings 
+//	ProgramName: STRING(1024);
+//	MDIString: STRING(1024);
+	ProgramName: STRING(HLI_IMCM_MODE_STATE_PARAM_STRL);
+	MDIString: STRING(HLI_IMCM_MODE_STATE_PARAM_STRL);
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

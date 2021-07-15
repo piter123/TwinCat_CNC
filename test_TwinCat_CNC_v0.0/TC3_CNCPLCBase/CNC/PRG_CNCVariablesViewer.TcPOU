@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.6">
+  <POU Name="PRG_CNCVariablesViewer" Id="{da8e67fd-e008-4579-a9d5-34610f25362d}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM PRG_CNCVariablesViewer
+VAR			
+	fbReadCNCVariables : FB_ReadCNCVariables;		
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[fbReadCNCVariables(
+	bEnable:= TRUE, 
+	nChanIdx:= PLCSelectedChannel, 
+	eVariablesType:= eVariablesType, 
+	tIntervall:= T#1S, 	 
+	stCNCVariablesViewer_Data:= stCNCVariablesViewer_Data);]]></ST>
+    </Implementation>
+    <LineIds Name="PRG_CNCVariablesViewer">
+      <LineId Id="3" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

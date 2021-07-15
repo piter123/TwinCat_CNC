@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_Alarm" Id="{8a933d14-5c49-48f7-b88f-d4600752ceb3}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Alarm
+VAR_INPUT
+	Event : TcEventEntry;  // AlarmEntry from TMS Editor. Example: TC_EVENTS.Alarms.Alarm1
+	Raise : BOOL;		   // true -> Alarm is active, false -> Alarm not active
+	AddInfo: STRING;	   // if <> empty -> additional Info that is transfered together with alarm
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	_alarm : FB_TcAlarm;
+	_initDone : BOOL;
+	_rTrigRaise : R_TRIG;
+	_fTrigRaise : F_TRIG;
+	_fbSourceInfo : FB_TcSourceInfo;
+	_fbJson      : FB_JsonSaxWriter;
+	_sJsonDoc    : STRING(255);	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(* ========================================================= *)
+(*    FUN: FB_Alarm                   					     *)
+(* --------------------------------------------------------- *)
+(*   Desc: Simple usage of Eventlogger2 Alarms               *)
+(* Author: MiB                                               *)
+(*   Date: 09.03.2021                                        *)
+(*   Rev.: 1.0                                               *)
+(* ========================================================= *)
+
+
+// init
+IF NOT _initDone AND Event.nEventId <> 0 THEN
+	_fbSourceInfo.sName := 'PLC';
+	_alarm.CreateEx(Event, FALSE, _fbSourceInfo );
+	_initDone := TRUE;
+END_IF
+
+// raise alarm
+_rTrigRaise(clk := Raise);
+IF _rTrigRaise.Q AND NOT _alarm.bRaised  THEN
+	IF LEN(AddInfo) > 0 THEN 
+		_fbJson.ResetDocument();
+		_fbJson.StartObject();
+		_fbJson.AddKey('AddInfo');
+		_fbJson.AddString(AddInfo);		
+		_fbJson.EndObject();
+		_sJsonDoc := _fbJson.GetDocument();
+	    _alarm.SetJsonAttribute(_sJsonDoc);		
+	ELSE
+		_alarm.SetJsonAttribute('');
+	END_IF
+	_alarm.Raise(0);
+END_IF
+
+// clear alarm
+_fTrigRaise(clk := Raise);
+IF _fTrigRaise.Q AND _alarm.bRaised THEN
+	_alarm.Clear(0, FALSE);
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="FB_Alarm">
+      <LineId Id="3" Count="37" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

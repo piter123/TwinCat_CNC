@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.6">
+  <DUT Name="ST_MANUAL" Id="{6a6dbf44-10e6-4e80-a2dd-1164f8c3c34d}">
+    <Declaration><![CDATA[TYPE ST_MANUAL :
+STRUCT
+	// @1:cylinder one @2:on:1 @3:off:1 @4:pos1:1 @5:pos2:0
+	cyl1 			: BYTE;	
+	cyl1Status		: BYTE;
+	
+	// @1:conveyor @2:IMG1:1 @2:IMG2 @3:IMG15 @4:IMG16 @5:IMG7 @6:IMG13 @7:IMG14
+	conv 			: BYTE;
+	convStatus 		: BYTE;
+	
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.6">
+  <GVL Name="Global_Messages" Id="{37dff550-8eb5-40c9-88e9-ab900d467742}">
+    <Declaration><![CDATA[VAR_GLOBAL
+	///--------------------------
+	///	Messages                
+	///--------------------------
+	MSG_WARNING_List: ARRAY[FIRST_MESSAGE..LAST_MESSAGE] OF BOOL;
+	MSG_WARNING_ListQuit: ARRAY[FIRST_MESSAGE..LAST_MESSAGE] OF BOOL;	
+	MSG_ALARM_List: ARRAY[FIRST_MESSAGE..LAST_MESSAGE] OF BOOL;
+	MSG_ALARM_ListQuit: ARRAY[FIRST_MESSAGE..LAST_MESSAGE] OF BOOL;			
+END_VAR
+
+VAR_GLOBAL CONSTANT
+	FIRST_MESSAGE: UDINT := 1;
+	LAST_MESSAGE: UDINT := 50;	
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

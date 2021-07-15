@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <GVL Name="Global_CNC" Id="{53b0382d-e5c1-4d3c-90f4-a474264a53f5}">
+    <Declaration><![CDATA[VAR_GLOBAL CONSTANT
+	// Max index of channel that is used starting at 0, example: 1 -> totally 2 channels, maximum of 11 (12 channels) is allowed here
+	MAX_USED_CHANNEL_IDX		: INT := 2;									
+	libVersion					: ST_LibVersion := stLibVersion_Tc3_CNC;  	 
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

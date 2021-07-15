@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.6">
+  <DUT Name="ST_MachineData" Id="{f2c92f7d-c1ff-430b-93ca-b1aefd859ab3}">
+    <Declaration><![CDATA[TYPE ST_MachineData :
+STRUCT
+	// @1: Value1
+	Value1: INT;
+	// @1: Bool Value
+	Value2: bool;
+	// @1: Position
+	pos : ST_Position;
+	// @1: Manual @6:1
+	manualFunction : ST_Manual;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

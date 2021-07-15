@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4022.17">
+  <GVL Name="Global_HMI" Id="{4f704176-310f-4d40-8e3c-1ef12402672b}">
+    <Declaration><![CDATA[VAR_GLOBAL
+	/// HMI -> PLC 
+	PLCChannelSignals: ST_ChannelSignals;
+	/// HMI -> PLC 
+	PLCSelectedChannel: INT := 0;
+	/// HMI -> PLC 
+	PLCFeedOverride: UINT := 100;
+	/// HMI -> PLC 
+	PLCSpindleOverride: UINT := 100;
+	/// HMI -> PLC 
+	PLCAxisEnable: BOOL;
+	/// PLC -> HMI  
+	PLCStatusAxisEnabled : BOOL;	
+	/// HMI -> PLC 
+	PLCReset: BOOL;
+	PLCMachineMode: ARRAY[0..MAX_USED_CHANNEL_IDX] OF ST_MachineMode;
+	/// PLC -> HMI : angewähltes File 
+	PLCToHmiFile: STRING(255);
+	/// Variablen für das Module "InformPlc" 
+	bToggle: BOOL;
+	sActualForm: STRING(255);
+	nUserLevel: INT;
+	sUserName: STRING(255);
+	/// steigende Flanke: Applikation beenden 
+	bExitApp: BOOL;	
+	
+	userActivity : BOOL;
+	
+	// @1:MachineData
+	MachineData : ST_MachineData;
+	
+	// spindle manual mode
+	nSpindleRpm:	DINT;	
+	bSpindleStart: BOOL;
+	bSpindleStop: BOOL;
+	
+	ManualFnc : ARRAY[0..3] OF FB_ManualFncFull;
+	
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

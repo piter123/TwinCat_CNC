@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.3">
+  <POU Name="PRG_CNCManualMode" Id="{3480dcd1-b4df-4004-b394-897655766feb}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM PRG_CNCManualMode
+VAR
+	fbUintUdInt: ARRAY [0..MAX_USED_CHANNEL_IDX] OF FB_Uint_Udint;
+	nHandwheel : UINT;		(* increments for handwheel (e.g. EL5101   *)
+	nHandWheelBig: UDINT;
+	i: INT;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+FOR i := 0 TO MAX_USED_CHANNEL_IDX DO
+	
+	IF (HLI3_CheckChannelValid(i)) THEN
+
+		stManualModeParameter[i].stChannelParameter.nChanIdx						:= i;       (* Channel 1 *)
+		stManualModeParameter[i].stChannelParameter.nInc							:= PLCMachineMode[i].ManualMode.nInc * 10;
+		stManualModeParameter[i].stChannelParameter.bG200ConfigurationViaPLC		:= TRUE;		
+		
+		stManualModeParameter[i].stChannelParameter.eManualType						:= UINT_TO_INT(PLCMachineMode[i].ManualMode.nManualTyp);			
+		IF (stManualModeParameter[i].stChannelParameter.eManualType = E_CNC_ManualType.Handwheel AND i <> PLCSelectedChannel) THEN	(* if in Handwheel mode and the channel is NOT selected -> leave handwheel mode and change to TippMode*)
+			stManualModeParameter[i].stChannelParameter.eManualType						:= E_CNC_ManualType.TippMode;
+		END_IF		
+		
+		stManualModeParameter[i].stChannelParameter.stManualOption.bTrafoActive := PLCMachineMode[i].ManualMode.stManualOption.bTrafoActive;
+        stManualModeParameter[i].stChannelParameter.stManualOption.bEcsActive := PLCMachineMode[i].ManualMode.stManualOption.bEcsActive;
+        stManualModeParameter[i].stChannelParameter.stManualOption.eZeroOffset := PLCMachineMode[i].ManualMode.stManualOption.eZeroOffset;
+							
+		
+		stManualModeParameter[i].stChannelParameter.nHandwheelResolution			:= UDINT_TO_DINT(PLCMachineMode[i].ManualMode.nHwResolution);    (* 0.1 µm /rev (from HMI) *)						
+		stManualModeParameter[i].stAxisParameter.stControlUnit[0].nLogAxisNr		:= PLCMachineMode[i].ManualMode.nLogAxisNumber;   (* Log. Achs Nummer *)
+		IF stManualModeParameter[i].stAxisParameter.stControlUnit[0].nLogAxisNr = 0 THEN
+			stManualModeParameter[i].stAxisParameter.stControlUnit[0].nLogAxisNr := gpCh[i]^.bahn_state.coord_r[0].log_achs_nr_r;
+			PLCMachineMode[i].ManualMode.nLogAxisNumber := gpCh[i]^.bahn_state.coord_r[0].log_achs_nr_r;
+		END_IF
+		stManualModeParameter[i].stAxisParameter.stControlUnit[0].nSpeed			:= LREAL_TO_UDINT(PLCMachineMode[i].ManualMode.nSpeed * 16.666);
+		stManualModeControlElements[i].stControlKeys[0].bKeyNeg						:= PLCMachineMode[i].ManualMode.bKeyNeg;
+		stManualModeControlElements[i].stControlKeys[0].bKeyPos						:= PLCMachineMode[i].ManualMode.bKeyPos;
+		stManualModeControlElements[i].stControlKeys[0].bKeyRapid					:= PLCMachineMode[i].ManualMode.bKeyRapid;
+		
+		(* the cnc needs an UDINT for handwheel increments, fbUintUdint extends an UInt to an UDINT *)
+		(* the resoltion of the handwheel is parameterized in CNC-Task GEO/Manual MDS: (e.g. 400 handwheel inc / handwheel revolution
+		
+				hr_data[0].hr_aufl_z              400         ( P-MANU-00005 : Handwheel resolution numerator
+				hr_data[0].hr_aufl_n                1     	  ( P-MANU-00006 : Handwheel resolution denominator
+		*) 
+		fbUintUdInt[i](nInSmall := nHandwheel, nBig := nHandWheelBig);
+		stManualModeControlElements[i].nHandwheelInc[0] :=  UDINT_TO_DINT(nHandWheelBig);
+  END_IF
+END_FOR
+
+
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="PRG_CNCManualMode">
+      <LineId Id="3" Count="6" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="10" Count="8" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="19" Count="25" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
